@@ -1,0 +1,14 @@
+{
+  "queries": [
+    "staffing agencies in Kitchener Ontario",
+    "staffing agencies in Waterloo Ontario",
+    "staffing agencies in Cambridge Ontario"
+  ],
+  "output_dir": "results",
+  "binary": "../google-maps-scraper",
+  "filters": {
+    "require_email": false,
+    "require_phone": false,
+    "require_website": false
+  }
+}

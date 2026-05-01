@@ -587,7 +587,7 @@ def run_job(job_id, query, require_email, require_phone, require_website):
     log(f"$ {' '.join(cmd)}")
 
     try:
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace')
         for line in proc.stdout:
             log(line.rstrip())
         proc.wait()
@@ -680,7 +680,7 @@ def create_job():
 
             log(f"\n--- {q} ---\n$ {' '.join(cmd)}")
             try:
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='replace')
                 for line in proc.stdout:
                     log(line.rstrip())
                 proc.wait()

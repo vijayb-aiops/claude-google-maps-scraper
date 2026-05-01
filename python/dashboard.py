@@ -94,9 +94,7 @@ HTML = """
     <button class="tab" onclick="showTab('results')">Results</button>
   </div>
 
-  <div id="tab-manual" class="tab-panel active">
-
-  <!-- Stats -->
+  <!-- Stats (always visible) -->
   <div class="card">
     <h2>Overview</h2>
     <div class="stats" id="stats">
@@ -108,6 +106,7 @@ HTML = """
     </div>
   </div>
 
+  <div id="tab-manual" class="tab-panel active">
   <!-- Submit -->
   <div class="card">
     <h2>New Scrape Job</h2>
@@ -138,7 +137,9 @@ HTML = """
     </div>
   </div>
 
-  <!-- Jobs -->
+  </div><!-- end tab-manual -->
+
+  <!-- Jobs (always visible) -->
   <div class="card">
     <h2>Jobs</h2>
     <table>
@@ -147,13 +148,13 @@ HTML = """
     </table>
   </div>
 
-  <!-- Log -->
+  <!-- Log (always visible) -->
   <div class="card">
     <h2>Log <small id="log-job" style="color:#888;font-weight:400"></small></h2>
     <div id="log">Click a job row to see log…</div>
   </div>
 
-  <!-- Master download -->
+  <!-- Master download (always visible) -->
   <div class="card">
     <h2>Master CSV</h2>
     <p style="font-size:.9rem;color:#555;margin-bottom:12px">Combined deduplicated output from all completed jobs.</p>
@@ -162,8 +163,6 @@ HTML = """
     <button onclick="buildMaster()">Rebuild Now</button>
     <span id="master-msg" style="margin-left:12px;font-size:.85rem;color:#555"></span>
   </div>
-
-  </div><!-- end tab-manual -->
 
   <!-- CAMPAIGNS TAB -->
   <div id="tab-campaigns" class="tab-panel" style="display:none">
@@ -179,6 +178,21 @@ HTML = """
       <h2 id="cd-title"></h2>
       <p id="cd-desc" style="font-size:.85rem;color:#555;margin-bottom:12px"></p>
       <div id="cd-batches"></div>
+      <div id="cd-custom-input" style="display:none;margin-top:12px">
+        <p style="font-size:.85rem;font-weight:600;margin-bottom:6px">Enter your queries (one per line):</p>
+        <textarea id="cd-custom-queries" style="width:100%;height:140px;border:1px solid #ddd;border-radius:4px;padding:8px;font-size:.85rem" placeholder="restaurants in Kitchener ON&#10;cafes in Waterloo ON&#10;bakeries in Cambridge ON"></textarea>
+        <p style="font-size:.8rem;color:#888;margin-top:4px">Use grid mode below for more results per query.</p>
+        <div style="margin-top:10px;padding:10px;background:#f8f8f8;border-radius:6px">
+          <label style="font-size:.85rem;font-weight:600"><input type="checkbox" id="cd-custom-grid" style="margin-right:6px">Enable Grid Mode</label>
+          <div id="cd-custom-grid-opts" style="display:none;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.85rem">
+            <label>Min Lat<br><input type="text" id="cd-g-minlat" value="43.33" style="width:100%;padding:4px;border:1px solid #ddd;border-radius:4px"></label>
+            <label>Min Lon<br><input type="text" id="cd-g-minlon" value="-80.60" style="width:100%;padding:4px;border:1px solid #ddd;border-radius:4px"></label>
+            <label>Max Lat<br><input type="text" id="cd-g-maxlat" value="43.50" style="width:100%;padding:4px;border:1px solid #ddd;border-radius:4px"></label>
+            <label>Max Lon<br><input type="text" id="cd-g-maxlon" value="-80.35" style="width:100%;padding:4px;border:1px solid #ddd;border-radius:4px"></label>
+            <label style="grid-column:span 2">Cell size (km)<br><input type="number" id="cd-g-cell" value="1" min="0.5" max="10" step="0.5" style="width:80px;padding:4px;border:1px solid #ddd;border-radius:4px"></label>
+          </div>
+        </div>
+      </div>
       <div class="row" style="margin-top:16px">
         <label><input type="checkbox" id="cd-req-email"> Require email</label>
         <label><input type="checkbox" id="cd-req-phone"> Require phone</label>
@@ -272,6 +286,15 @@ async function selectCampaign(id) {
   document.getElementById('cd-no-web').checked = c.goal === 'website_sales';
   document.getElementById('cd-req-phone').checked = c.goal === 'hidden_job_market';
 
+  // Show custom input only for custom campaign
+  const isCustom = id === 'custom';
+  document.getElementById('cd-custom-input').style.display = isCustom ? 'block' : 'none';
+  document.getElementById('cd-batches').style.display = isCustom ? 'none' : 'block';
+
+  document.getElementById('cd-custom-grid').onchange = function() {
+    document.getElementById('cd-custom-grid-opts').style.display = this.checked ? 'grid' : 'none';
+  };
+
   const bDiv = document.getElementById('cd-batches');
   bDiv.innerHTML = '<p style="font-size:.85rem;font-weight:600;margin-bottom:8px">Batches (click to select):</p>';
   c.batches.forEach((batch, i) => {
@@ -315,6 +338,29 @@ async function runBatch(batchIdx) {
 
 async function runAllBatches() {
   if (!selectedCampaign) return alert('Select a campaign first.');
+
+  // Custom campaign — single job from textarea
+  if (selectedCampaign === 'custom') {
+    const lines = document.getElementById('cd-custom-queries').value.trim().split('\n').map(s => s.trim()).filter(Boolean);
+    if (!lines.length) return alert('Enter at least one query.');
+    const useGrid = document.getElementById('cd-custom-grid').checked;
+    const body = {
+      queries: lines,
+      grid: useGrid ? {
+        min_lat: document.getElementById('cd-g-minlat').value,
+        min_lon: document.getElementById('cd-g-minlon').value,
+        max_lat: document.getElementById('cd-g-maxlat').value,
+        max_lon: document.getElementById('cd-g-maxlon').value,
+        cell:    document.getElementById('cd-g-cell').value,
+      } : null,
+      ...getFilterParams('cd-'),
+    };
+    await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    alert('Custom job started!');
+    showTab('manual');
+    return;
+  }
+
   const res = await fetch('/api/campaigns/' + selectedCampaign);
   const c = await res.json();
   for (let i = 0; i < c.batches.length; i++) {
@@ -374,7 +420,7 @@ document.getElementById('use-grid').addEventListener('change', function() {
 });
 
 async function submitJob() {
-  const lines = document.getElementById('queries').value.trim().split('\\n').map(s => s.trim()).filter(Boolean);
+  const lines = document.getElementById('queries').value.trim().split('\n').map(s => s.trim()).filter(Boolean);
   if (!lines.length) return alert('Enter at least one query.');
   const useGrid = document.getElementById('use-grid').checked;
   const body = {
@@ -397,9 +443,12 @@ async function submitJob() {
 }
 
 async function refresh() {
-  const [jobsRes, statsRes] = await Promise.all([fetch('/api/jobs'), fetch('/api/stats')]);
-  const jobsData = await jobsRes.json();
-  const statsData = await statsRes.json();
+  let jobsData, statsData;
+  try {
+    const [jobsRes, statsRes] = await Promise.all([fetch('/api/jobs'), fetch('/api/stats')]);
+    jobsData = await jobsRes.json();
+    statsData = await statsRes.json();
+  } catch(e) { return; }
 
   // stats
   document.getElementById('s-total').textContent = statsData.total;
@@ -447,7 +496,7 @@ async function buildMaster() {
 }
 
 function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return (s == null ? '' : String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 refresh();

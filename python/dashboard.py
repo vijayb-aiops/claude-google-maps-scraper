@@ -341,7 +341,7 @@ async function runAllBatches() {
 
   // Custom campaign — single job from textarea
   if (selectedCampaign === 'custom') {
-    const lines = document.getElementById('cd-custom-queries').value.trim().split('\n').map(s => s.trim()).filter(Boolean);
+    const lines = document.getElementById('cd-custom-queries').value.trim().split('\\n').map(s => s.trim()).filter(Boolean);
     if (!lines.length) return alert('Enter at least one query.');
     const useGrid = document.getElementById('cd-custom-grid').checked;
     const body = {
@@ -420,7 +420,7 @@ document.getElementById('use-grid').addEventListener('change', function() {
 });
 
 async function submitJob() {
-  const lines = document.getElementById('queries').value.trim().split('\n').map(s => s.trim()).filter(Boolean);
+  const lines = document.getElementById('queries').value.trim().split('\\n').map(s => s.trim()).filter(Boolean);
   if (!lines.length) return alert('Enter at least one query.');
   const useGrid = document.getElementById('use-grid').checked;
   const body = {

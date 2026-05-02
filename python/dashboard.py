@@ -194,6 +194,9 @@ HTML = """
         </div>
       </div>
       <div class="row" style="margin-top:16px">
+        <label><input type="checkbox" id="cd-use-grid"> Use grid mode (slower, more results)</label>
+      </div>
+      <div class="row" style="margin-top:16px">
         <label><input type="checkbox" id="cd-req-email"> Require email</label>
         <label><input type="checkbox" id="cd-req-phone"> Require phone</label>
         <label><input type="checkbox" id="cd-req-web"> Require website (for website sales)</label>
@@ -327,7 +330,7 @@ async function runBatch(batchIdx) {
   const batch = c.batches[batchIdx];
   const body = {
     queries: batch,
-    grid: { ...c.bbox, cell: c.cell },
+    grid: document.getElementById('cd-use-grid').checked ? { ...c.bbox, cell: c.cell } : null,
     ...getFilterParams('cd-'),
   };
   const r = await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
@@ -366,7 +369,7 @@ async function runAllBatches() {
   for (let i = 0; i < c.batches.length; i++) {
     const body = {
       queries: c.batches[i],
-      grid: { ...c.bbox, cell: c.cell },
+      grid: document.getElementById('cd-use-grid').checked ? { ...c.bbox, cell: c.cell } : null,
       ...getFilterParams('cd-'),
     };
     await fetch('/api/jobs', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
